@@ -13,7 +13,7 @@ export default function useAnonAuth() {
       try {
         await setPersistence(auth, browserLocalPersistence);
         await signInAnonymously(auth);
-        unsub = onAuthStateChanged(auth, (user) => user && setUid(user.uid));
+        unsub = onAuthStateChanged(auth, (u) => u && setUid(u.uid));
       } catch (e: any) {
         setError(e?.message ?? String(e));
       }

@@ -18,23 +18,17 @@ export default function usePlayers(eventId?: string | string[], uid?: string | n
   }, [eId]);
 
   useEffect(() => {
-    if (uid && players.some(p => p.id === uid)) setJoined(true);
+    if (uid && players.some((p) => p.id === uid)) setJoined(true);
+    else setJoined(false);
   }, [uid, players]);
 
   const join = async (name: string) => {
     if (!eId || !uid || !name.trim()) return;
     const pref = doc(db, 'events', eId, 'players', uid);
-    const exists = players.some(p => p.id === uid);
-    // players are NOT allowed to write 'score' (rules)
-    await setDoc(
-      pref,
-      exists ? { id: uid, name: name.trim() } : { id: uid, name: name.trim(), connectedAt: Date.now() },
-      { merge: true }
-    );
-    setJoined(true);
+    await setDoc(pref, { id: uid, name: name.trim(), connectedAt: Date.now() }, { merge: true });
   };
 
-  const playersById = useMemo(() => Object.fromEntries(players.map(p => [p.id, p])), [players]);
-
+  const playersById = Object.fromEntries(players.map((p) => [p.id, p]));
   return { players, playersById, joined, join };
 }
+

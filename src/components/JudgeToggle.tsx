@@ -1,11 +1,12 @@
+'use client';
 export default function JudgeToggle({
   isJudge, judgeKey, setJudgeKey, onClaim, onLeave,
 }:{
   isJudge: boolean;
   judgeKey: string;
-  setJudgeKey: (v:string)=>void;
-  onClaim: ()=>void;
-  onLeave: ()=>void;
+  setJudgeKey: (s: string) => void;
+  onClaim: () => void;
+  onLeave: () => void;
 }) {
   return (
     <div className="mt-6 border border-zinc-800 rounded p-3 space-y-2">
@@ -25,11 +26,7 @@ export default function JudgeToggle({
       ) : (
         <div className="flex items-center gap-2">
           <span className="text-sm opacity-80">✅ Judge mode is ON</span>
-          <button
-            onClick={onLeave}
-            className="bg-zinc-700 hover:bg-zinc-600 px-3 py-2 rounded"
-            title="Return to player mode"
-          >
+          <button onClick={onLeave} className="bg-zinc-700 hover:bg-zinc-600 px-3 py-2 rounded">
             Switch to Player Mode
           </button>
         </div>
@@ -37,3 +34,4 @@ export default function JudgeToggle({
     </div>
   );
 }
+

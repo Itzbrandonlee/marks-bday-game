@@ -1,4 +1,4 @@
-export type EventStatus = 'judging' | 'collecting' | 'reveal' | 'gameOver';
+export type EventStatus = 'collecting' | 'judging' | 'reveal' | 'gameOver';
 
 export interface EventDoc {
   id: string;
@@ -10,19 +10,20 @@ export interface EventDoc {
   roundsTotal: number;
   finalRoundMultiplier: number;
   gameOver?: boolean;
-  judgeKey?: string;
+  judgeKey?: string; // optional UI hint; rules don’t use it directly
 }
 
 export interface PlayerDoc {
   id: string;
   name: string;
   score?: number;
-  connectedAt?: number;
+  connectedAt: number;
 }
 
 export interface AnswerDoc {
-  id: string;        // uid
-  playerId: string;  // uid
+  id: string;        // == uid
+  playerId: string;
   text: string;
-  createdAt: number; // ms
+  createdAt: number;
 }
+

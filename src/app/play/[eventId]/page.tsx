@@ -28,15 +28,15 @@ export default function PlayPage() {
 
   const [name, setName] = useState('');
   const [myAnswer, setMyAnswer] = useState('');
-  const [judgeKey, setJudgeKey] = useState('')
+  const [judgeKey, setJudgeKey] = useState('');
 
   if (error) return <div className="p-4 text-red-400">Auth error: {error}</div>;
   if (!event) return <div className="p-4">Loading event…</div>;
 
   const isCollecting = event.status === 'collecting';
-  const isJudging = event.status === 'judging';
-  const isReveal = event.status === 'reveal';
-  const isGameOver = event.status === 'gameOver' || event.gameOver;
+  const isJudging   = event.status === 'judging';
+  const isReveal    = event.status === 'reveal';
+  const isGameOver  = event.status === 'gameOver' || event.gameOver;
 
   return (
     <div className="p-4">
@@ -49,19 +49,22 @@ export default function PlayPage() {
       />
 
       {!joined && uid && (
-        <JoinForm name={name} setName={setName} onJoin={() => join(name)} />
+        <JoinForm name={name} setName={setName} onJoin={() => { join(name); localStorage.setItem('quip-name', name); }} />
       )}
 
       <PlayersList players={players} />
 
-      <JudgeToggle
-        isJudge={isJudge}
-        judgeKey={judgeKey}
-        setJudgeKey={setJudgeKey}
-        onClaim={() => actions.claimJudge(judgeKey)}
-        onLeave={actions.leaveJudge}
-      />
-      {/* If you prefer the judge key input to live here instead, pass it down via props as in your current file. */}
+<JudgeToggle
+  isJudge={isJudge}
+  judgeKey={judgeKey}
+  setJudgeKey={setJudgeKey}
+  onClaim={() => {
+    actions.claimJudge(judgeKey);
+    // 👇 This line is essential
+    localStorage.setItem(`judgeKey-${eventId}`, judgeKey);
+  }}
+  onLeave={actions.leaveJudge} // leaveJudge now handles removing from localStorage
+/>
 
       <JudgeControls
         show={isJudge && !isGameOver}
@@ -69,8 +72,6 @@ export default function PlayPage() {
         isJudging={isJudging}
         startCollecting={(p) => actions.startCollecting(p)}
         startJudging={actions.startJudging}
-        nextRound={actions.nextRound}
-        resetGame={actions.resetGame}
       />
 
       {isCollecting && !isGameOver && (
@@ -86,11 +87,11 @@ export default function PlayPage() {
         </>
       )}
 
-      {isJudging && !isGameOver && (
-        <>
+      {event.status === 'judging' && !isGameOver && (
+        <section className="mt-4">
           <PromptCard prompt={event.prompt} roundIndex={event.roundIndex} totalRounds={event.roundsTotal} />
-          <AnonymousAnswers answers={answers} canPick={isJudge} onPick={actions.pickWinner} />
-        </>
+          <AnonymousAnswers answers={answers} canPick={isJudge} onPick={(pid) => actions.pickWinner(pid)} />
+        </section>
       )}
 
       {isReveal && !isGameOver && (
@@ -103,7 +104,9 @@ export default function PlayPage() {
         />
       )}
 
-      {isGameOver && <GameOver players={players} />}
+      {isGameOver && (
+        <GameOver players={players} isJudge={isJudge} onPlayAgain={actions.playAgain} />
+      )}
     </div>
   );
 }
