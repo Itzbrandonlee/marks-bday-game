@@ -25,9 +25,10 @@ export default function useAnswers(
 
   const submitAnswer = async (text: string, status?: string) => {
     if (!eId || typeof roundIndex !== 'number' || !uid) return;
-    if (!text.trim() || status !== 'collecting') return;
+    if (!text.trim()) return;
+    // Optional: enforce only during collecting in UI
     const roundId = `r-${roundIndex}`;
-    const aRef = doc(db, 'events', eId, 'rounds', roundId, 'answers', uid); // one per player
+    const aRef = doc(db, 'events', eId, 'rounds', roundId, 'answers', uid); // one per player per round
     await setDoc(aRef, {
       id: uid,
       playerId: uid,

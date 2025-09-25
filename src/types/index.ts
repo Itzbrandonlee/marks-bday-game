@@ -6,24 +6,30 @@ export interface EventDoc {
   roundIndex: number;
   prompt: string;
   winnerId?: string;
+  gameOver?: boolean;
+
+  // scoring config
   pointsPerWin: number;
   roundsTotal: number;
   finalRoundMultiplier: number;
-  gameOver?: boolean;
-  judgeKey?: string; // optional UI hint; rules don’t use it directly
+
+  // judge control
+  judgeAuthId?: string | null; // UID of current judge
+  judgeKey?: string | null;    // optional UX helper only
 }
 
 export interface PlayerDoc {
-  id: string;
+  id: string;          // auth uid
   name: string;
   score?: number;
   connectedAt: number;
 }
 
 export interface AnswerDoc {
-  id: string;        // == uid
+  id: string;          // == uid (per rules)
   playerId: string;
   text: string;
   createdAt: number;
 }
+
 

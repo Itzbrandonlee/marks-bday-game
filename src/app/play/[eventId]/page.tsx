@@ -34,9 +34,9 @@ export default function PlayPage() {
   if (!event) return <div className="p-4">Loading event…</div>;
 
   const isCollecting = event.status === 'collecting';
-  const isJudging   = event.status === 'judging';
-  const isReveal    = event.status === 'reveal';
-  const isGameOver  = event.status === 'gameOver' || event.gameOver;
+  const isJudging = event.status === 'judging';
+  const isReveal = event.status === 'reveal';
+  const isGameOver = event.status === 'gameOver' || event.gameOver;
 
   return (
     <div className="p-4">
@@ -54,17 +54,17 @@ export default function PlayPage() {
 
       <PlayersList players={players} />
 
-<JudgeToggle
-  isJudge={isJudge}
-  judgeKey={judgeKey}
-  setJudgeKey={setJudgeKey}
-  onClaim={() => {
-    actions.claimJudge(judgeKey);
-    // 👇 This line is essential
-    localStorage.setItem(`judgeKey-${eventId}`, judgeKey);
-  }}
-  onLeave={actions.leaveJudge} // leaveJudge now handles removing from localStorage
-/>
+      <JudgeToggle
+        isJudge={isJudge}
+        judgeKey={judgeKey}
+        setJudgeKey={setJudgeKey}
+        onClaim={() => {
+          actions.claimJudge(judgeKey);
+          // 👇 This line is essential
+          localStorage.setItem(`judgeKey-${eventId}`, judgeKey);
+        }}
+        onLeave={actions.leaveJudge} // leaveJudge now handles removing from localStorage
+      />
 
       <JudgeControls
         show={isJudge && !isGameOver}
