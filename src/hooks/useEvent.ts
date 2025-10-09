@@ -1,9 +1,10 @@
 'use client';
+import { PROMPTS } from '@/data/prompts';
 import { useEffect, useMemo, useState } from 'react';
 import { db } from '@/lib/firebase';
 import {
   collection, doc, getDocs, increment,
-  onSnapshot, updateDoc, writeBatch
+  onSnapshot, updateDoc, writeBatch, serverTimestamp
 } from 'firebase/firestore';
 import type { EventDoc } from '@/types';
 
@@ -11,13 +12,27 @@ export default function useEvent(eventId?: string | string[], uid?: string | nul
   const eId = useMemo(() => (eventId ? String(eventId) : undefined), [eventId]);
   const [event, setEvent] = useState<EventDoc | null>(null);
   const [isJudge, setIsJudge] = useState(false);
+  const tag = `[useEvent ${eId}]`;
 
   // Event listener
   useEffect(() => {
     if (!eId) return;
     const ref = doc(db, 'events', eId);
+
     return onSnapshot(ref, (snap) => {
-      if (snap.exists()) setEvent({ id: snap.id, ...(snap.data() as any) });
+      if (!snap.exists()) return;
+
+      const data = snap.data() as any;
+      console.log('[EVENT SNAPSHOT]', {
+        status: data.status,
+        roundIndex: data.roundIndex,
+        prompt: data.prompt,
+        collectStartAt: Boolean(data.collectStartAt),
+        collectDurationSec: data.collectDurationSec,
+        usedPromptIndexes: Array.isArray(data.usedPromptIndexes) ? data.usedPromptIndexes.length : 0,
+      });
+
+      setEvent({ id: snap.id, ...data });
     });
   }, [eId]);
 
@@ -44,29 +59,65 @@ export default function useEvent(eventId?: string | string[], uid?: string | nul
     clearJudgeKey();
   };
 
-  // Round flow
-  const startCollecting = async (prompt: string) => {
-    if (!eId || !isJudge) return;
-    await updateDoc(doc(db, 'events', eId), { prompt, status: 'collecting', winnerId: '' });
+  // ---- Round flow ----
+
+  // Start collecting: pick a random prompt from PROMPTS (no repeats until we exhaust the list)
+  const startCollecting = async () => {
+    console.log('[CLICK] startCollecting called from', event?.status);
+    if (!eId || !isJudge || !event) return;
+
+    // Only from JUDGING (pre-round) into COLLECTING
+    if (event.status !== 'judging') return;
+
+    const used = event.usedPromptIndexes ?? [];
+    const all = Array.from({ length: PROMPTS.length }, (_, i) => i);
+    const available = all.filter(i => !used.includes(i));
+    const pool = available.length > 0 ? available : all; // reset deck if exhausted
+
+    const nextIndex = pool[Math.floor(Math.random() * pool.length)];
+    const nextPrompt = PROMPTS[nextIndex];
+
+    await updateDoc(doc(db, 'events', eId), {
+      prompt: nextPrompt,
+      status: 'collecting',
+      winnerId: '',
+      collectStartAt: serverTimestamp(),
+      collectDurationSec: 30,                 // 30s timer
+      usedPromptIndexes: [...used, nextIndex] // remember which prompt we used
+    });
   };
 
+  // Move to judging (ends the timer)
   const startJudging = async () => {
-    if (!eId || !isJudge) return;
-    await updateDoc(doc(db, 'events', eId), { status: 'judging' });
+    console.log('[CLICK] startJudging called from', event?.status);
+    if (!eId || !isJudge || !event) return;
+
+    // Only from COLLECTING into JUDGING
+    if (event.status !== 'collecting') return;
+
+    await updateDoc(doc(db, 'events', eId), {
+      status: 'judging',
+      collectStartAt: null,
+      collectDurationSec: null,
+    });
   };
 
+  // Pick winner: reveal + award points
   const pickWinner = async (winnerPlayerId: string) => {
     if (!eId || !isJudge || !event) return;
     const b = writeBatch(db);
+
     b.update(doc(db, 'events', eId), { status: 'reveal', winnerId: winnerPlayerId });
 
     const isFinal = (event.roundIndex + 1) >= event.roundsTotal;
     const delta = isFinal ? (event.pointsPerWin * event.finalRoundMultiplier) : event.pointsPerWin;
+
     b.update(doc(db, 'events', eId, 'players', winnerPlayerId), { score: increment(delta) });
 
     await b.commit();
   };
 
+  // Next round or game over
   const nextRound = async () => {
     if (!eId || !isJudge || !event) return;
     const nextIndex = (event.roundIndex || 0) + 1;
@@ -76,7 +127,7 @@ export default function useEvent(eventId?: string | string[], uid?: string | nul
     await updateDoc(doc(db, 'events', eId), payload);
   };
 
-  // Play again: wipe players & answers, reset event
+  // Play again: wipe players & answers, reset event and prompt deck
   const playAgain = async () => {
     if (!eId || !isJudge || !event) return;
 
@@ -99,13 +150,14 @@ export default function useEvent(eventId?: string | string[], uid?: string | nul
       }
     }
 
-    // reset event last
+    // reset event last (and reset used prompt deck)
     await updateDoc(doc(db, 'events', eId), {
       roundIndex: 0,
       status: 'judging',
       prompt: '',
       winnerId: '',
       gameOver: false,
+      usedPromptIndexes: [],
     });
   };
 

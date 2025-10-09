@@ -7,6 +7,9 @@ export interface EventDoc {
   prompt: string;
   winnerId?: string;
   gameOver?: boolean;
+  collectStartAt?: any;
+  collectDurationSec?: any;
+  usedPromptIndexes?: number[];
 
   // scoring config
   pointsPerWin: number;
