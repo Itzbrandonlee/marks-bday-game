@@ -1,8 +1,14 @@
 'use client';
+import confetti from 'canvas-confetti';
+import { useEffect } from 'react';
 import type { AnswerDoc, PlayerDoc } from '@/types';
 
 export default function WinnerReveal({
-  winnerId, answers, playersById, onNext, showNext,
+  winnerId,
+  answers,
+  playersById,
+  onNext,
+  showNext,
 }:{
   winnerId?: string;
   answers: AnswerDoc[];
@@ -10,6 +16,12 @@ export default function WinnerReveal({
   onNext: () => void;
   showNext?: boolean;
 }) {
+  useEffect(() => {
+    if (!winnerId) return;
+    // two short bursts
+    confetti({ particleCount: 90, spread: 70, origin: { y: 0.6 } });
+    setTimeout(() => confetti({ particleCount: 70, spread: 80, origin: { y: 0.6 } }), 250);
+  }, [winnerId]);
   return (
     <div className="mt-4 space-y-2">
       <p className="text-lg">

@@ -1,30 +1,32 @@
 'use client';
+
 export default function AnswerInput({
-  value, onChange, onSubmit, submitted, disabled,
+  value, onChange, onSubmit, submitted, disabled
 }:{
   value: string;
-  onChange: (s: string) => void;
+  onChange: (v: string) => void;
   onSubmit: () => void;
-  submitted: boolean;
+  submitted?: boolean;
   disabled?: boolean;
 }) {
   return (
-    <div className="mt-3 space-y-1">
-      <div className="flex gap-2">
-        <input
-          className="flex-1 bg-zinc-800 rounded px-3 py-2"
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          placeholder="Type your funniest answer…"
-          maxLength={140}
-          disabled={disabled}
-        />
-        <button onClick={onSubmit} disabled={disabled} className="bg-emerald-500 text-black px-3 py-2 rounded disabled:opacity-50">
-          Submit
-        </button>
-      </div>
-      <p className="text-xs opacity-70">Submitted: {submitted ? '✅' : '—'}</p>
+    <div className="mt-3 flex gap-2">
+      <input
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={submitted ? 'Submitted ✔' : 'Type your funniest answer…'}
+        disabled={disabled || submitted}
+        className="flex-1 bg-zinc-900/80 border border-white/10 rounded-xl px-4 py-3 text-base placeholder:text-zinc-500 disabled:opacity-60"
+        maxLength={140}
+      />
+      <button
+        type="button"
+        onClick={onSubmit}
+        disabled={disabled || submitted || !value.trim()}
+        className="px-4 py-3 rounded-xl bg-emerald-500 text-black font-semibold hover:opacity-90 disabled:opacity-50"
+      >
+        Submit
+      </button>
     </div>
   );
 }
-

@@ -2,24 +2,24 @@
 import type { AnswerDoc } from '@/types';
 
 export default function AnonymousAnswers({
-  answers, canPick, onPick,
+  answers,
+  canPick,
+  onPick,
 }:{
   answers: AnswerDoc[];
   canPick: boolean;
   onPick: (playerId: string) => void;
 }) {
-  if (!answers.length) {
-    return <div className="mt-4 text-sm opacity-70">Waiting for answers…</div>;
-  }
+  if (!answers.length) return <div className="mt-2 text-sm opacity-70">Waiting for answers…</div>;
+
   return (
-    <div className="mt-3 space-y-2">
-      <p className="text-lg font-medium">Pick a winner:</p>
-      {answers.map((a) => (
+    <div className="mt-3 grid gap-2">
+      {answers.map(a => (
         <button
           key={a.id}
-          onClick={() => canPick && onPick(a.playerId)}
           disabled={!canPick}
-          className="block w-full text-left bg-zinc-800 hover:bg-zinc-700 rounded px-3 py-2 disabled:opacity-50"
+          onClick={() => canPick && onPick(a.playerId)}
+          className="text-left rounded-xl bg-white/[0.04] border border-white/10 px-4 py-3 text-lg sm:text-xl break-words hover:bg-white/[0.08] transition-colors disabled:cursor-default"
         >
           {a.text}
         </button>

@@ -1,10 +1,12 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import confetti from 'canvas-confetti';
 import type { PlayerDoc } from '@/types';
 
 export default function GameOver({
-  players, isJudge, onPlayAgain,
+  players, isJudge, onPlayAgain, winnerId,
 }:{
+  winnerId?: string;
   players: PlayerDoc[];
   isJudge?: boolean;
   onPlayAgain?: () => Promise<void> | void;
@@ -17,7 +19,11 @@ export default function GameOver({
     setBusy(true);
     try { await onPlayAgain(); } finally { setBusy(false); }
   };
-
+  useEffect(() => {
+    if (!winnerId) return;
+    confetti({ particleCount: 90, spread: 70, origin: { y: 0.6 } });
+    setTimeout(() => confetti({ particleCount: 70, spread: 80, origin: { y: 0.6 } }), 250);
+  }, );
   return (
     <div className="mt-6">
       <h2 className="text-xl font-bold">🏁 Game Over</h2>

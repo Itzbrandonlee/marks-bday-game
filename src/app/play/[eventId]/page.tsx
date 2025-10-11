@@ -47,22 +47,22 @@ export default function PlayPage() {
 
   const kickedRef = useRef<string | null>(null);
 
-  useEffect(() => {
-    if (!event || !isJudge) return;
-    if (event.status !== 'collecting') { kickedRef.current = null; return; }
+useEffect(() => {
+  if (!event || !isJudge) return;
+  if (event.status !== 'collecting') { kickedRef.current = null; return; }
 
-    // ✅ Add this guard: don’t auto-advance until the server timestamp exists
-    if (!event.collectStartAt || !event.collectDurationSec) return;
+  // ✅ Add this guard: don’t auto-advance until the server timestamp exists
+  if (!event.collectStartAt || !event.collectDurationSec) return;
 
-    const key = `${event.id}:${event.roundIndex}`;
-    if (secondsLeft > 0) return;
-    if (kickedRef.current === key) return;
-    kickedRef.current = key;
+  const key = `${event.id}:${event.roundIndex}`;
+  if (secondsLeft > 0) return;
+  if (kickedRef.current === key) return;
+  kickedRef.current = key;
 
-    setTimeout(() => {
-      if (event?.status === 'collecting') actions.startJudging();
-    }, 0);
-  }, [event?.id, event?.roundIndex, event?.status, event?.collectStartAt, event?.collectDurationSec, isJudge, secondsLeft, actions]);
+  setTimeout(() => {
+    if (event?.status === 'collecting') actions.startJudging();
+  }, 0);
+}, [event?.id, event?.roundIndex, event?.status, event?.collectStartAt, event?.collectDurationSec, isJudge, secondsLeft, actions]);
 
 
 
@@ -94,14 +94,14 @@ export default function PlayPage() {
         onLeave={actions.leaveJudge}
       />
 
-      <JudgeControls
-        show={isJudge && !isGameOver}
-        isCollecting={isCollecting}
-        isJudging={isJudging}
-        canStartCollecting={canStartCollecting}   // ⬅️ new
-        startCollecting={() => actions.startCollecting()}
-        startJudging={actions.startJudging}
-      />
+<JudgeControls
+  show={isJudge && !isGameOver}
+  isCollecting={isCollecting}
+  isJudging={isJudging}
+  canStartCollecting={canStartCollecting}   // ⬅️ new
+  startCollecting={() => actions.startCollecting()}
+  startJudging={actions.startJudging}
+/>
 
       {isCollecting && !isGameOver && (
         <>
