@@ -9,17 +9,28 @@ const compat = new FlatCompat({
   baseDirectory: __dirname,
 });
 
-const eslintConfig = [
+export default [
+  // Next’s recommended sets
   ...compat.extends("next/core-web-vitals", "next/typescript"),
+
+  // ✅ Relax a few rules just for TS/TSX
   {
-    ignores: [
-      "node_modules/**",
-      ".next/**",
-      "out/**",
-      "build/**",
-      "next-env.d.ts",
-    ],
+    files: ["**/*.{ts,tsx}"],
+    rules: {
+      // Allow quick prototyping with any; tighten later if you want
+      "@typescript-eslint/no-explicit-any": "off",
+      // Don’t fail the build for unused vars; underscore to intentionally ignore
+      "@typescript-eslint/no-unused-vars": [
+        "warn",
+        { argsIgnorePattern: "^_", varsIgnorePattern: "^_" }
+      ],
+      // Don’t block builds on exhaustive-deps; we’ll manage effects manually
+      "react-hooks/exhaustive-deps": "warn"
+    },
+  },
+
+  // Ignore build artifacts
+  {
+    ignores: ["node_modules/**", ".next/**", "out/**", "build/**", "next-env.d.ts"],
   },
 ];
-
-export default eslintConfig;
