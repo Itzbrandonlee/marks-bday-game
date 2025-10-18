@@ -5,6 +5,7 @@ import useAnonAuth from '@/hooks/useAnonAuth';
 import useEvent from '@/hooks/useEvent';
 import usePlayers from '@/hooks/usePlayers';
 import useAnswers from '@/hooks/useAnswers';
+
 import WinnerPopup from '@/components/WinnerPopup';
 import RoundStartPopup from '@/components/RoundStartPopup';
 import JoinForm from '@/components/JoinForm';
@@ -16,7 +17,7 @@ import AnonymousAnswers from '@/components/AnonymousAnswers';
 import WinnerReveal from '@/components/WinnerReveal';
 import GameOver from '@/components/GameOver';
 import GameHeader from '@/components/GameHeader';
-import JudgeKeyModal from '@/components/JudgeKeyModal'
+import JudgeKeyModal from '@/components/JudgeKeyModal';
 import useCountdown from '@/hooks/useCountdown';
 import { Progress } from '@/components/ui/progress';
 import Scoreboard from '@/components/Scoreboard';
@@ -34,12 +35,21 @@ export default function PlayPage() {
   const [name, setName] = useState('');
   const [myAnswer, setMyAnswer] = useState('');
 
-  const status = event?.status;
-  const isCollecting = status === 'collecting';
-  const isJudging = status === 'judging';
-  const isReveal = status === 'reveal';
-  const isGameOver = status === 'gameOver' || Boolean(event?.gameOver);
+  // Deconstruct the single action we call inside the effect so we can
+  // safely add it to the dependency list.
+  const { startJudging } = actions;
+
+  // Derive primitives so the effect doesn't depend on the whole `event` object.
+  const evId = event?.id ?? '';
+  const evStatus = event?.status ?? 'judging';
+  const roundIndex = event?.roundIndex ?? 0;
+  const roundsTotal = event?.roundsTotal ?? 0;
+  const isCollecting = evStatus === 'collecting';
+  const isJudging = evStatus === 'judging';
+  const isReveal = evStatus === 'reveal';
+  const isGameOver = evStatus === 'gameOver' || Boolean(event?.gameOver);
   const canStartCollecting = isJudge && isJudging && answers.length === 0 && !isGameOver;
+  const hasTimer = Boolean(event?.collectStartAt && event?.collectDurationSec);
 
   const { msLeft, secondsLeft, progress /*, isRunning*/ } = useCountdown(
     event?.collectStartAt ?? null,
@@ -49,24 +59,25 @@ export default function PlayPage() {
 
   const kickedRef = useRef<string | null>(null);
 
-useEffect(() => {
-  if (!event || !isJudge) return;
-  if (event.status !== 'collecting') { kickedRef.current = null; return; }
+  // Auto-advance from collecting -> judging when the timer hits 0 (judge only).
+  useEffect(() => {
+    if (!isJudge) return;
+    if (evStatus !== 'collecting') {
+      kickedRef.current = null;
+      return;
+    }
+    if (!hasTimer) return;                // wait until server timestamp populates
+    if (secondsLeft > 0) return;
 
-  // ✅ Add this guard: don’t auto-advance until the server timestamp exists
-  if (!event.collectStartAt || !event.collectDurationSec) return;
+    const key = `${evId}:${roundIndex}`;
+    if (kickedRef.current === key) return; // one-shot per round
+    kickedRef.current = key;
 
-  const key = `${event.id}:${event.roundIndex}`;
-  if (secondsLeft > 0) return;
-  if (kickedRef.current === key) return;
-  kickedRef.current = key;
-
-  setTimeout(() => {
-    if (event?.status === 'collecting') actions.startJudging();
-  }, 0);
-}, [event?.id, event?.roundIndex, event?.status, event?.collectStartAt, event?.collectDurationSec, isJudge, secondsLeft, actions]);
-
-
+    // schedule microtask to avoid racing the snapshot render
+    Promise.resolve().then(() => {
+      if (evStatus === 'collecting') startJudging();
+    });
+  }, [isJudge, evStatus, hasTimer, secondsLeft, evId, roundIndex, startJudging]);
 
   if (error) return <div className="p-4 text-red-400">Auth error: {error}</div>;
   if (!event) return <div className="p-4">Loading event…</div>;
@@ -77,23 +88,29 @@ useEffect(() => {
         eventId={String(event.id)}
         status={event.status}
         roundIndex={event.roundIndex}
-        roundsTotal={event.roundsTotal}
+        roundsTotal={roundsTotal}
         isJudge={isJudge}
       />
 
-      <RoundStartPopup 
-        roundIndex={event.roundIndex}
-        roundsTotal={event.roundsTotal}
-        status={event.status} />
+      <RoundStartPopup
+        roundIndex={roundIndex}
+        roundsTotal={roundsTotal}
+        status={event.status}
+      />
 
       {!joined && uid && (
-        <JoinForm name={name} setName={setName} onJoin={() => { join(name); localStorage.setItem('quip-name', name); }} />
+        <JoinForm
+          name={name}
+          setName={setName}
+          onJoin={() => {
+            join(name);
+            localStorage.setItem('quip-name', name);
+          }}
+        />
       )}
 
       <PlayersList players={players} />
       <Scoreboard players={players} phase={event.status} compact={false} />
-
-
 
       <JudgeKeyModal
         isJudge={isJudge}
@@ -101,18 +118,22 @@ useEffect(() => {
         onLeave={actions.leaveJudge}
       />
 
-<JudgeControls
-  show={isJudge && !isGameOver}
-  isCollecting={isCollecting}
-  isJudging={isJudging}
-  canStartCollecting={canStartCollecting}   // ⬅️ new
-  startCollecting={() => actions.startCollecting()}
-  startJudging={actions.startJudging}
-/>
+      <JudgeControls
+        show={isJudge && !isGameOver}
+        isCollecting={isCollecting}
+        isJudging={isJudging}
+        canStartCollecting={canStartCollecting}
+        startCollecting={() => actions.startCollecting()}
+        startJudging={startJudging}
+      />
 
       {isCollecting && !isGameOver && (
         <>
-          <PromptCard prompt={event.prompt} roundIndex={event.roundIndex} totalRounds={event.roundsTotal} />
+          <PromptCard
+            prompt={event.prompt}
+            roundIndex={roundIndex}
+            totalRounds={roundsTotal}
+          />
 
           {/* Timer UI */}
           <div className="mt-2">
@@ -131,7 +152,10 @@ useEffect(() => {
             <AnswerInput
               value={myAnswer}
               onChange={setMyAnswer}
-              onSubmit={() => { submitAnswer(myAnswer, event.status); setMyAnswer(''); }}
+              onSubmit={() => {
+                submitAnswer(myAnswer, event.status);
+                setMyAnswer('');
+              }}
               submitted={submitted}
               disabled={!joined || msLeft === 0}
             />
@@ -139,31 +163,46 @@ useEffect(() => {
         </>
       )}
 
-
       {event.status === 'judging' && !isGameOver && (
         <section className="mt-4">
-          <PromptCard prompt={event.prompt} roundIndex={event.roundIndex} totalRounds={event.roundsTotal} />
-          <AnonymousAnswers answers={answers} canPick={isJudge} onPick={(pid) => actions.pickWinner(pid)} />
+          <PromptCard
+            prompt={event.prompt}
+            roundIndex={roundIndex}
+            totalRounds={roundsTotal}
+          />
+          <AnonymousAnswers
+            answers={answers}
+            canPick={isJudge}
+            onPick={(pid) => actions.pickWinner(pid)}
+          />
         </section>
       )}
 
       {isReveal && !isGameOver && (
         <>
-        <WinnerPopup winnerId={event.winnerId} playersById={playersById} answers={answers} />
-        <WinnerReveal
-          winnerId={event.winnerId}
-          answers={answers}
-          playersById={playersById}
-          onNext={actions.nextRound}
-          showNext={isJudge}
-        />
+          <WinnerPopup
+            winnerId={event.winnerId}
+            playersById={playersById}
+            answers={answers}
+          />
+          <WinnerReveal
+            winnerId={event.winnerId}
+            answers={answers}
+            playersById={playersById}
+            onNext={actions.nextRound}
+            showNext={isJudge}
+          />
         </>
       )}
 
       {isGameOver && (
         <>
-        <FinalWinnerPopup players={players} openWhen={true} />
-        <GameOver players={players} isJudge={isJudge} onPlayAgain={actions.playAgain} />
+          <FinalWinnerPopup players={players} openWhen={true} />
+          <GameOver
+            players={players}
+            isJudge={isJudge}
+            onPlayAgain={actions.playAgain}
+          />
         </>
       )}
     </div>
