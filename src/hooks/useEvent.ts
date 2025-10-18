@@ -82,7 +82,7 @@ export default function useEvent(eventId?: string | string[], uid?: string | nul
       status: 'collecting',
       winnerId: '',
       collectStartAt: serverTimestamp(),
-      collectDurationSec: 30,                 // 30s timer
+      collectDurationSec: 60,                 // 60s timer
       usedPromptIndexes: [...used, nextIndex] // remember which prompt we used
     });
   };
@@ -110,7 +110,15 @@ export default function useEvent(eventId?: string | string[], uid?: string | nul
     b.update(doc(db, 'events', eId), { status: 'reveal', winnerId: winnerPlayerId });
 
     const isFinal = (event.roundIndex + 1) >= event.roundsTotal;
-    const delta = isFinal ? (event.pointsPerWin * event.finalRoundMultiplier) : event.pointsPerWin;
+    const roundTwo = (event.roundIndex === 5)
+    let delta = 0
+    if (isFinal) {
+      delta = event.pointsPerWin * 4
+    } else if (roundTwo) {
+      delta = event.pointsPerWin * 2
+    } else {
+      delta = event.pointsPerWin
+    }
 
     b.update(doc(db, 'events', eId, 'players', winnerPlayerId), { score: increment(delta) });
 

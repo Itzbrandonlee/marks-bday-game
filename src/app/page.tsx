@@ -1,16 +1,29 @@
-export default function Home() {
-  const eventId = 'mark-2025'; // ← set your event id
+// app/page.tsx
+'use client';
+
+import { useRouter } from 'next/navigation';
+import { Button } from '@/components/ui/button';
+
+const EVENT_ID = 'mark-2025'; // <-- your event id
+
+export default function HomePage() {
+  const router = useRouter();
+
   return (
-    <main className="min-h-screen flex items-center justify-center bg-zinc-950 text-zinc-100">
-      <div className="text-center p-8">
-        <h1 className="text-4xl font-black">🎂 Happy Birthday, Mark!</h1>
-        <p className="opacity-80 mt-2">Let’s play a round of Quip-Off.</p>
-        <a
-          href={`/play/${eventId}`}
-          className="inline-block mt-6 px-6 py-3 rounded-xl bg-emerald-500 text-black font-semibold hover:opacity-90"
-        >
-          Start & Show QR
-        </a>
+    <main className="min-h-[80dvh] grid place-items-center p-6">
+      <div className="w-full max-w-xl text-center rounded-3xl border border-white/10 bg-white/5 p-8">
+        <h1 className="text-3xl sm:text-4xl font-extrabold">🎂 Happy Birthday, Mark!</h1>
+        <p className="mt-2 opacity-80">When you’re ready, show the QR so everyone can join.</p>
+
+        <div className="mt-6">
+          <Button
+            size="lg"
+            className="bg-sky-400 text-black font-bold"
+            onClick={() => router.push(`/join/${EVENT_ID}`)}
+          >
+            Start — Show QR
+          </Button>
+        </div>
       </div>
     </main>
   );

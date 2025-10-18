@@ -5,7 +5,8 @@ import useAnonAuth from '@/hooks/useAnonAuth';
 import useEvent from '@/hooks/useEvent';
 import usePlayers from '@/hooks/usePlayers';
 import useAnswers from '@/hooks/useAnswers';
-
+import WinnerPopup from '@/components/WinnerPopup';
+import RoundStartPopup from '@/components/RoundStartPopup';
 import JoinForm from '@/components/JoinForm';
 import PlayersList from '@/components/PlayersList';
 import JudgeControls from '@/components/JudgeControls';
@@ -19,6 +20,7 @@ import JudgeKeyModal from '@/components/JudgeKeyModal'
 import useCountdown from '@/hooks/useCountdown';
 import { Progress } from '@/components/ui/progress';
 import Scoreboard from '@/components/Scoreboard';
+import FinalWinnerPopup from '@/components/FinalWinnerPopup';
 
 import { useState, useEffect, useRef } from 'react';
 
@@ -78,6 +80,11 @@ useEffect(() => {
         roundsTotal={event.roundsTotal}
         isJudge={isJudge}
       />
+
+      <RoundStartPopup 
+        roundIndex={event.roundIndex}
+        roundsTotal={event.roundsTotal}
+        status={event.status} />
 
       {!joined && uid && (
         <JoinForm name={name} setName={setName} onJoin={() => { join(name); localStorage.setItem('quip-name', name); }} />
@@ -141,6 +148,8 @@ useEffect(() => {
       )}
 
       {isReveal && !isGameOver && (
+        <>
+        <WinnerPopup winnerId={event.winnerId} playersById={playersById} answers={answers} />
         <WinnerReveal
           winnerId={event.winnerId}
           answers={answers}
@@ -148,10 +157,14 @@ useEffect(() => {
           onNext={actions.nextRound}
           showNext={isJudge}
         />
+        </>
       )}
 
       {isGameOver && (
+        <>
+        <FinalWinnerPopup players={players} openWhen={true} />
         <GameOver players={players} isJudge={isJudge} onPlayAgain={actions.playAgain} />
+        </>
       )}
     </div>
   );
